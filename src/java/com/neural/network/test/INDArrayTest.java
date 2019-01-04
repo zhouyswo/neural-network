@@ -30,9 +30,11 @@ public class INDArrayTest {
 //            for (int i = 0; i < rows.length(); i++) {
 //                System.out.println(rows.getDouble(i));
 //            }
-            System.out.println(Nd4j.zeros(10,10));
+            //System.out.println(Nd4j.zeros(10,10));
+            //System.out.println( Nd4j.zeros(1, 2* 28));
+            //System.out.println("lllllll");
         } catch (Exception e) {
-
+            System.out.println(e.getMessage());
         }
 
     }
