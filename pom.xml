@@ -15,12 +15,18 @@
         <shadedClassifier>bin</shadedClassifier>
 
 
+
         <java.version>1.8</java.version>
-        <nd4j.version>1.0.0-alpha</nd4j.version>
-        <dl4j.version>1.0.0-alpha</dl4j.version>
+        <!--<nd4j.version>1.0.0-alpha</nd4j.version>-->
+        <!--<dl4j.version>1.0.0-alpha</dl4j.version>-->
+        <!--<datavec.version>1.0.0-alpha</datavec.version>-->
+        <!--<arbiter.version>1.0.0-alpha</arbiter.version>-->
+        <!--<rl4j.version>1.0.0-alpha</rl4j.version>-->
+        <nd4j.version>1.0.0-beta3</nd4j.version>
+        <dl4j.version>1.0.0-beta3</dl4j.version>
         <datavec.version>1.0.0-alpha</datavec.version>
-        <arbiter.version>1.0.0-alpha</arbiter.version>
-        <rl4j.version>1.0.0-alpha</rl4j.version>
+        <arbiter.version>1.0.0-beta3</arbiter.version>
+        <rl4j.version>1.0.0-beta3</rl4j.version>
 
         <!-- For Spark examples: change the _1 to _2 to switch between Spark 1 and Spark 2 -->
         <dl4j.spark.version>1.0.0-alpha_spark_1</dl4j.spark.version>
@@ -68,20 +74,20 @@
             <artifactId>nd4j-native-platform</artifactId>
             <version>${nd4j.version}</version>
         </dependency>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-cuda-8.0-platform</artifactId>
-            <version>${nd4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-cuda-9.0-platform</artifactId>
-            <version>${nd4j.version}</version>
-        </dependency>
+        <!--<dependency>-->
+            <!--<groupId>org.nd4j</groupId>-->
+            <!--<artifactId>nd4j-cuda-8.0-platform</artifactId>-->
+            <!--<version>${nd4j.version}</version>-->
+        <!--</dependency>-->
+        <!--<dependency>-->
+            <!--<groupId>org.nd4j</groupId>-->
+            <!--<artifactId>nd4j-cuda-9.0-platform</artifactId>-->
+            <!--<version>${nd4j.version}</version>-->
+        <!--</dependency>-->
         <dependency>
             <groupId>org.nd4j</groupId>
             <artifactId>nd4j-cuda-9.1-platform</artifactId>
-            <version>${nd4j.version}</version>
+            <version>1.0.0-alpha</version>
         </dependency>
         <dependency>
             <groupId>org.nd4j</groupId>
@@ -128,7 +134,7 @@
         <dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-parallel-wrapper_${scala.binary.version}</artifactId>
-            <version>${dl4j.version}</version>
+            <version>1.0.0-alpha</version>
         </dependency>
 
         <!-- Next 2: used for MapFileConversion Example. Note you need *both* together -->
