@@ -3,6 +3,9 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/neural-network.iml" filepath="$PROJECT_DIR$/.idea/neural-network.iml" />
+      <module fileurl="file://$PROJECT_DIR$/oncpu/oncpu.iml" filepath="$PROJECT_DIR$/oncpu/oncpu.iml" />
+      <module fileurl="file://$PROJECT_DIR$/ongpu/ongpu.iml" filepath="$PROJECT_DIR$/ongpu/ongpu.iml" />
+      <module fileurl="file://$PROJECT_DIR$/onspark/onspark.iml" filepath="$PROJECT_DIR$/onspark/onspark.iml" />
     </modules>
   </component>
 </project>
