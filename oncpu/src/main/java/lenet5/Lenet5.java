@@ -1,7 +1,8 @@
-package com.neural.network.ongpu;
+package lenet5;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
+import org.datavec.api.io.labels.PathLabelGenerator;
 import org.datavec.api.split.FileSplit;
 import org.datavec.api.split.InputSplit;
 import org.datavec.image.loader.NativeImageLoader;
@@ -11,8 +12,6 @@ import org.datavec.image.transform.ImageTransform;
 import org.datavec.image.transform.PipelineImageTransform;
 import org.datavec.image.transform.ResizeImageTransform;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
-import org.deeplearning4j.nn.api.Model;
-import org.deeplearning4j.nn.api.NeuralNetwork;
 import org.deeplearning4j.nn.conf.BackpropType;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
@@ -21,64 +20,50 @@ import org.deeplearning4j.nn.conf.layers.*;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
-import org.deeplearning4j.parallelism.ParallelWrapper;
-import org.nd4j.jita.conf.CudaEnvironment;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.linalg.activations.Activation;
-import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
-import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.nd4j.linalg.primitives.Pair;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.lang.reflect.Array;
-import java.util.Arrays;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by DELL on 2019/1/4.
  */
-public class MutilGpuLenet5 {
+public class Lenet5 {
     //图像通道数
-    int imgChannels = 1;
+    int imgChannels = 3;
     int width = 224;
     int hight = 224;
     //输出类别数
-    int outLabels = 10;
+    int outLabels = 5;
     //每一批次处理的数据量
     int batchSize = 128;
     //迭代轮数
-    int epochs = 10;
+    int epochs = 5;
     //随机种子
     int seed = 64;
-    String datapath = "";
+    String datapath = "/opt/workplace/testDatas/data/flower_photos";
 
-    public static void main(String args[]) {
-        try {
-            new MutilGpuLenet5().trainLenet5();
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-        }
+    public static void main(String args[]) throws Exception {
+        new Lenet5().trainLenet5();
     }
 
     public void trainLenet5() throws Exception {
-        Nd4j.setDataType(DataBuffer.Type.HALF);
-        CudaEnvironment.getInstance()
-                .getConfiguration()
-                .allowMultiGPU(true)
-                .setMaximumDeviceCache(2 * 1024 * 1024 * 1024L)
-                .allowCrossDeviceAccess(true);
 
-        ParentPathLabelGenerator lableMaker = new ParentPathLabelGenerator();
+        PathLabelGenerator lableMaker = new ParentPathLabelGenerator();
+
         FileSplit files = new FileSplit(new File(datapath), NativeImageLoader.ALLOWED_FORMATS, new Random(seed));
         RandomPathFilter randomf = new RandomPathFilter(new Random(seed), NativeImageLoader.ALLOWED_FORMATS);
 
-        InputSplit[] splits = files.sample(randomf, 0.8, 0.2);
+        InputSplit[] splits = files.sample(randomf, 0.7, 0.3);
         InputSplit train = splits[0];
         InputSplit test = splits[1];
 
@@ -93,12 +78,13 @@ public class MutilGpuLenet5 {
         pipeline.add(new Pair<ImageTransform, Double>(new FlipImageTransform(1), 0.5));
 
         ImageTransform itf = new PipelineImageTransform(pipeline, false);
-        ImageRecordReader trainirr = new ImageRecordReader(width, hight, imgChannels, itf);
-        trainirr.setLabels(Arrays.asList(dierctories));
+
+        ImageRecordReader trainirr = new ImageRecordReader(width, hight, imgChannels, lableMaker,itf);
+        //trainirr.setLabels(Arrays.asList(dierctories));
         trainirr.initialize(train);
 
-        ImageRecordReader testirr = new ImageRecordReader(width, hight, imgChannels, itf);
-        testirr.setLabels(Arrays.asList(dierctories));
+        ImageRecordReader testirr = new ImageRecordReader(width, hight, imgChannels, lableMaker,itf);
+        // testirr.setLabels(Arrays.asList(dierctories));
         testirr.initialize(test);
 
         DataSetIterator traindsi = new RecordReaderDataSetIterator(trainirr, batchSize, 1, 5);
@@ -109,18 +95,31 @@ public class MutilGpuLenet5 {
         scaler.fit(traindsi);
         traindsi.setPreProcessor(scaler);
         testdsi.setPreProcessor(scaler);
+        MultiLayerNetwork model = getLenet5Model();
 
-        ParallelWrapper pw = new ParallelWrapper.Builder(getLenet5Model()).prefetchBuffer(32).workers(6).averagingFrequency(3).reportScoreAfterAveraging(true).build();
         long timeX = System.currentTimeMillis();
         for (int i = 0; i < epochs; i++) {
             long time1 = System.currentTimeMillis();
-            pw.fit(traindsi);
+            model.fit(traindsi);
             long time2 = System.currentTimeMillis();
             System.out.println("*** Completed epoch " + i + ", time: " + (time2 - time1) + " *********");
         }
+        Evaluation eval = new Evaluation(outLabels);
+        while(testdsi.hasNext()){
+            DataSet ds = testdsi.next();
+            //INDArray output = model.output(ds.getFeatures(), false);
+           int[] out =  model.predict(ds.getFeatures());
+            INDArray labs = ds.getLabels();
+            for(int i =0;i<out.length;i++){
+                System.out.println(i+"----"+out[i]);
+            }
+           // eval.eval(ds.getLabels(), output);
+        }
+        //System.out.println(eval.stats());
+        //testdsi.reset();
     }
 
-    public Model getLenet5Model() {
+    public MultiLayerNetwork getLenet5Model() {
         MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
                 .seed(seed).l2(0.0005).weightInit(WeightInit.XAVIER)
                 .updater(new Nesterovs.Builder().learningRate(0.01).build())
@@ -130,9 +129,9 @@ public class MutilGpuLenet5 {
                 .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
                 .layer(2, new ConvolutionLayer.Builder(5, 5).stride(1, 1).nOut(50).activation(Activation.IDENTITY).build())
                 .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
-                .layer(4, new DenseLayer.Builder().activation(Activation.RELU).nOut(500).build())
-                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(500).activation(Activation.SOFTMAX).build())
-                .setInputType(InputType.convolutionalFlat(28, 28, 1))
+                .layer(4, new DenseLayer.Builder().activation(Activation.RELU).nOut(5).build())
+                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outLabels).activation(Activation.SOFTMAX).build())
+                .setInputType(InputType.convolutionalFlat(hight, width, imgChannels))
                 .backpropType(BackpropType.Standard)
                 .build();
         MultiLayerNetwork mln = new MultiLayerNetwork(conf);

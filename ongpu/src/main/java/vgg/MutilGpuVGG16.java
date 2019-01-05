@@ -1,4 +1,4 @@
-package com.neural.network.ongpu;
+package vgg;
 
 /**
  * Created by DELL on 2019/1/4.
