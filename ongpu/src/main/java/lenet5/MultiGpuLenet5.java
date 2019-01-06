@@ -1,4 +1,4 @@
-package alexnet;
+package lenet5;//package com.neural.network.ongpu;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
@@ -12,40 +12,36 @@ import org.datavec.image.transform.ImageTransform;
 import org.datavec.image.transform.PipelineImageTransform;
 import org.datavec.image.transform.ResizeImageTransform;
 import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
-import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.conf.BackpropType;
-import org.deeplearning4j.nn.conf.GradientNormalization;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-import org.deeplearning4j.nn.conf.distribution.GaussianDistribution;
 import org.deeplearning4j.nn.conf.inputs.InputType;
 import org.deeplearning4j.nn.conf.layers.*;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.deeplearning4j.parallelism.ParallelWrapper;
+import org.nd4j.evaluation.classification.Evaluation;
 import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.activations.Activation;
 import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.nd4j.linalg.primitives.Pair;
-import org.nd4j.linalg.schedule.ScheduleType;
-import org.nd4j.linalg.schedule.StepSchedule;
 
 import java.io.File;
 import java.io.FilenameFilter;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 /**
  * Created by DELL on 2019/1/4.
  */
-public class MutilGpuAlexnet {
+public class MultiGpuLenet5 {
     //图像通道数
     int imgChannels = 3;
     int width = 224;
@@ -61,9 +57,10 @@ public class MutilGpuAlexnet {
     String datapath = "/opt/workplace/testDatas/data/flower_photos";
 
     public static void main(String args[]) throws Exception {
-        new MutilGpuAlexnet().trainAndTestAlexnet();
+        new MultiGpuLenet5().trainLenet5();
     }
-    public void trainAndTestAlexnet() throws  Exception{
+
+    public void trainLenet5() throws Exception {
         Nd4j.setDataType(DataBuffer.Type.HALF);
         CudaEnvironment.getInstance()
                 .getConfiguration()
@@ -97,7 +94,7 @@ public class MutilGpuAlexnet {
         trainirr.initialize(train);
 
         ImageRecordReader testirr = new ImageRecordReader(width, hight, imgChannels, lableMaker,itf);
-        // testirr.setLabels(Arrays.asList(dierctories));
+       // testirr.setLabels(Arrays.asList(dierctories));
         testirr.initialize(test);
 
         DataSetIterator traindsi = new RecordReaderDataSetIterator(trainirr, batchSize, 1, 5);
@@ -108,7 +105,7 @@ public class MutilGpuAlexnet {
         scaler.fit(traindsi);
         traindsi.setPreProcessor(scaler);
         testdsi.setPreProcessor(scaler);
-        MultiLayerNetwork model = configAlexnet();
+        MultiLayerNetwork model = getLenet5Model();
         ParallelWrapper pw = new ParallelWrapper.Builder(model)
                 .prefetchBuffer(32)
                 .workers(3)
@@ -123,40 +120,36 @@ public class MutilGpuAlexnet {
             long time2 = System.currentTimeMillis();
             System.out.println("*** Completed epoch " + i + ", time: " + (time2 - time1) + " *********");
         }
-
-        scaler.fit(testdsi);
-        Evaluation eval = model.evaluate(testdsi);
-        System.out.println(eval.stats(true));
+        Evaluation eval = new Evaluation(outLabels);
+        while(testdsi.hasNext()){
+            DataSet ds = testdsi.next();
+            INDArray output = model.output(ds.getFeatures(), false);
+            eval.eval(ds.getLabels(), output);
+        }
+        System.out.println(eval.stats());
+        testdsi.reset();
     }
-    public MultiLayerNetwork configAlexnet(){
-        MultiLayerConfiguration mlc = new NeuralNetConfiguration.Builder()
-                .l2(0.0005)
-                .seed(seed)
-                .weightInit(WeightInit.XAVIER)
-                .updater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 1e-2, 0.1, 100000), 0.9))
-                .biasUpdater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 2e-2, 0.1, 100000), 0.9))
-                .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
+
+    public MultiLayerNetwork getLenet5Model() {
+        MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
+                .seed(seed).l2(0.0005).weightInit(WeightInit.XAVIER)
+                .updater(new Nesterovs.Builder().learningRate(0.01).build())
+                .biasUpdater(new Nesterovs.Builder().learningRate(0.01).build())
                 .list()
-                .layer(0,new ConvolutionLayer.Builder().kernelSize(11,11).stride(4,4).padding(3,3).nIn(imgChannels).nOut(96).biasInit(0).activation(Activation.RELU).name("conv1").build())
-                .layer(1, new LocalResponseNormalization.Builder().name("lrn1").build())
-                .layer(2,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(3,new ConvolutionLayer.Builder().kernelSize(5,5).stride(1,1).padding(2,2).nOut(256).biasInit(1).activation(Activation.RELU).build())
-                .layer(4, new LocalResponseNormalization.Builder().name("lrn2").build())
-                .layer(5,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(6,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(0).activation(Activation.RELU).build())
-                .layer(7,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(1).activation(Activation.RELU).build())
-                .layer(8,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(256).biasInit(1).activation(Activation.RELU).build())
-                .layer(9,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(10,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
-                .layer(11,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
-                .layer(12,new OutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(5).activation(Activation.SOFTMAX).build())
-                .setInputType(InputType.convolutional(hight, width, imgChannels)
-                ).backpropType(BackpropType.Standard)
-                .pretrain(true)
+                .layer(0, new ConvolutionLayer.Builder(5, 5).nIn(imgChannels).stride(1, 1).nOut(20).activation(Activation.IDENTITY).build())
+                .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
+                .layer(2, new ConvolutionLayer.Builder(5, 5).stride(1, 1).nOut(50).activation(Activation.IDENTITY).build())
+                .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(2, 2).stride(2, 2).build())
+                .layer(4, new DenseLayer.Builder().activation(Activation.RELU).nOut(5).build())
+                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(outLabels).activation(Activation.SOFTMAX).build())
+                .setInputType(InputType.convolutionalFlat(hight, width, imgChannels))
+                .backpropType(BackpropType.Standard)
                 .build();
-        MultiLayerNetwork mln = new MultiLayerNetwork(mlc);
-        mln.setListeners(new ScoreIterationListener(batchSize));
+        MultiLayerNetwork mln = new MultiLayerNetwork(conf);
         mln.init();
+        mln.setListeners(new ScoreIterationListener(100));
         return mln;
     }
+
+
 }
