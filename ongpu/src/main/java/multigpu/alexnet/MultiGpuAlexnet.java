@@ -1,4 +1,4 @@
-package multicpu.alexnet;
+package multigpu.alexnet;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
