@@ -1,4 +1,4 @@
-package vgg;
+package multicpu.vgg;
 
 import org.deeplearning4j.nn.conf.BackpropType;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;

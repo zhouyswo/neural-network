@@ -1,4 +1,4 @@
-package alexnet;
+package multicpu.alexnet;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
@@ -23,9 +23,13 @@ import org.deeplearning4j.nn.conf.layers.*;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.parallelism.ParallelWrapper;
+import org.nd4j.jita.conf.CudaEnvironment;
 import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.buffer.DataBuffer;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.nd4j.linalg.dataset.api.preprocessor.ImagePreProcessingScaler;
+import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.learning.config.Nesterovs;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 import org.nd4j.linalg.primitives.Pair;
@@ -41,7 +45,7 @@ import java.util.Random;
 /**
  * Created by DELL on 2019/1/4.
  */
-public class Alexnet {
+public class MultiGpuAlexnet {
     //图像通道数
     int imgChannels = 3;
     int width = 224;
@@ -57,9 +61,15 @@ public class Alexnet {
     String datapath = "/opt/workplace/testDatas/data/flower_photos";
 
     public static void main(String args[]) throws Exception {
-        new Alexnet().trainAndTestAlexnet();
+        new MultiGpuAlexnet().trainAndTestAlexnet();
     }
     public void trainAndTestAlexnet() throws  Exception{
+        Nd4j.setDataType(DataBuffer.Type.HALF);
+        CudaEnvironment.getInstance()
+                .getConfiguration()
+                .allowMultiGPU(true)
+                .setMaximumDeviceCache(7 * 1024 * 1024 * 1024L)
+                .allowCrossDeviceAccess(true);
 
         PathLabelGenerator lableMaker = new ParentPathLabelGenerator();
 
@@ -99,11 +109,17 @@ public class Alexnet {
         traindsi.setPreProcessor(scaler);
         testdsi.setPreProcessor(scaler);
         MultiLayerNetwork model = configAlexnet();
+        ParallelWrapper pw = new ParallelWrapper.Builder(model)
+                .prefetchBuffer(32)
+                .workers(3)
+                .averagingFrequency(9)
+                .reportScoreAfterAveraging(true)
+                .build();
 
         long timeX = System.currentTimeMillis();
         for (int i = 0; i < epochs; i++) {
             long time1 = System.currentTimeMillis();
-            model.fit(traindsi);
+            pw.fit(traindsi);
             long time2 = System.currentTimeMillis();
             System.out.println("*** Completed epoch " + i + ", time: " + (time2 - time1) + " *********");
         }

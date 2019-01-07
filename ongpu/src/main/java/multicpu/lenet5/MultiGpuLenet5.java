@@ -1,4 +1,4 @@
-package lenet5;//package com.neural.network.ongpu;
+package multicpu.lenet5;//package com.neural.network.ongpu;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;

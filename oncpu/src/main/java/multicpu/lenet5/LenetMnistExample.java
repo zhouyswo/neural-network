@@ -1,4 +1,4 @@
-package lenet5;
+package multicpu.lenet5;
 
 import org.deeplearning4j.datasets.iterator.impl.MnistDataSetIterator;
 import org.deeplearning4j.eval.Evaluation;

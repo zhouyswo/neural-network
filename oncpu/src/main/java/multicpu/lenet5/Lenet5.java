@@ -1,4 +1,4 @@
-package lenet5;
+package multicpu.lenet5;
 
 import org.datavec.api.io.filters.RandomPathFilter;
 import org.datavec.api.io.labels.ParentPathLabelGenerator;
