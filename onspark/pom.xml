@@ -42,10 +42,15 @@
         <javafx.version>2.2.3</javafx.version>
         <javafx.runtime.lib.jar>/usr/java/jdk1.8.0_191-amd64/jre/lib/jfxrt.jar</javafx.runtime.lib.jar>
         <aws.sdk.version>1.11.109</aws.sdk.version>
-        <jackson.version>2.6.6</jackson.version>
+        <!--<jackson.version>2.6.6</jackson.version>-->
         <scala.plugin.version>3.2.2</scala.plugin.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>${nd4j.backend}</artifactId>
+            <version>${nd4j.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.datavec</groupId>
             <artifactId>datavec-spark_${scala.binary.version}</artifactId>
@@ -65,6 +70,16 @@
             <groupId>org.deeplearning4j</groupId>
             <artifactId>dl4j-spark-parameterserver_${scala.binary.version}</artifactId>
             <version>${dl4j.spark.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.datavec</groupId>
+            <artifactId>datavec-hadoop</artifactId>
+            <version>${datavec.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.hadoop</groupId>
+            <artifactId>hadoop-common</artifactId>
+            <version>${hadoop.version}</version>
         </dependency>
     </dependencies>
     <build>

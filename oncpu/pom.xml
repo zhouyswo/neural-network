@@ -44,7 +44,7 @@
         <javafx.version>2.2.3</javafx.version>
         <javafx.runtime.lib.jar>/usr/java/jdk1.8.0_191-amd64/jre/lib/jfxrt.jar</javafx.runtime.lib.jar>
         <aws.sdk.version>1.11.109</aws.sdk.version>
-        <jackson.version>2.6.6</jackson.version>
+        <!--<jackson.version>2.6.6</jackson.version>-->
         <scala.plugin.version>3.2.2</scala.plugin.version>
     </properties>
     <dependencies>
