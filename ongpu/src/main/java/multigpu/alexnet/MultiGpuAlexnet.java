@@ -76,7 +76,7 @@ public class MultiGpuAlexnet {
         FileSplit files = new FileSplit(new File(datapath), NativeImageLoader.ALLOWED_FORMATS, new Random(seed));
         RandomPathFilter randomf = new RandomPathFilter(new Random(seed), NativeImageLoader.ALLOWED_FORMATS);
 
-        InputSplit[] splits = files.sample(randomf, 0.7, 0.3);
+        InputSplit[] splits = files.sample(randomf, 0.9, 0.1);
         InputSplit train = splits[0];
         InputSplit test = splits[1];
 
@@ -129,26 +129,56 @@ public class MultiGpuAlexnet {
         System.out.println(eval.stats(true));
     }
     public MultiLayerNetwork configAlexnet(){
+//        MultiLayerConfiguration mlc = new NeuralNetConfiguration.Builder()
+//                .l2(0.0005)
+//                .seed(seed)
+//                .weightInit(WeightInit.XAVIER)
+//                .updater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 1e-2, 0.1, 100000), 0.9))
+//                .biasUpdater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 2e-2, 0.1, 100000), 0.9))
+//                .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
+//                .list()
+//                .layer(0,new ConvolutionLayer.Builder().kernelSize(11,11).stride(4,4).padding(3,3).nIn(imgChannels).nOut(96).biasInit(0).activation(Activation.RELU).name("conv1").build())
+//                .layer(1, new LocalResponseNormalization.Builder().name("lrn1").build())
+//                .layer(2,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
+//                .layer(3,new ConvolutionLayer.Builder().kernelSize(5,5).stride(1,1).padding(2,2).nOut(256).biasInit(1).activation(Activation.RELU).build())
+//                .layer(4, new LocalResponseNormalization.Builder().name("lrn2").build())
+//                .layer(5,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
+//                .layer(6,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(0).activation(Activation.RELU).build())
+//                .layer(7,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(1).activation(Activation.RELU).build())
+//                .layer(8,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(256).biasInit(1).activation(Activation.RELU).build())
+//                .layer(9,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
+//                .layer(10,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
+//                .layer(11,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
+//                .layer(12,new OutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(5).activation(Activation.SOFTMAX).build())
+//                .setInputType(InputType.convolutional(hight, width, imgChannels)
+//                ).backpropType(BackpropType.Standard)
+//                .pretrain(true)
+//                .build();
+//        MultiLayerNetwork mln = new MultiLayerNetwork(mlc);
+//        mln.setListeners(new ScoreIterationListener(batchSize));
+//        mln.init();
+//        return mln;
+
         MultiLayerConfiguration mlc = new NeuralNetConfiguration.Builder()
                 .l2(0.0005)
                 .seed(seed)
                 .weightInit(WeightInit.XAVIER)
-                .updater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 1e-2, 0.1, 100000), 0.9))
-                .biasUpdater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 2e-2, 0.1, 100000), 0.9))
+                .updater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 1e-2, 0.1, 100), 0.9))
+                .biasUpdater(new Nesterovs(new StepSchedule(ScheduleType.ITERATION, 2e-2, 0.1, 100), 0.9))
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
                 .list()
-                .layer(0,new ConvolutionLayer.Builder().kernelSize(11,11).stride(4,4).padding(3,3).nIn(imgChannels).nOut(96).biasInit(0).activation(Activation.RELU).name("conv1").build())
+                .layer(0,new ConvolutionLayer.Builder().kernelSize(11,11).stride(4,4).padding(3,3).nIn(imgChannels).nOut(48).biasInit(0).activation(Activation.RELU).name("conv1").build())
                 .layer(1, new LocalResponseNormalization.Builder().name("lrn1").build())
                 .layer(2,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(3,new ConvolutionLayer.Builder().kernelSize(5,5).stride(1,1).padding(2,2).nOut(256).biasInit(1).activation(Activation.RELU).build())
+                .layer(3,new ConvolutionLayer.Builder().kernelSize(5,5).stride(1,1).padding(2,2).nOut(96).biasInit(1).activation(Activation.RELU).build())
                 .layer(4, new LocalResponseNormalization.Builder().name("lrn2").build())
                 .layer(5,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(6,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(0).activation(Activation.RELU).build())
-                .layer(7,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(384).biasInit(1).activation(Activation.RELU).build())
-                .layer(8,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(256).biasInit(1).activation(Activation.RELU).build())
+                .layer(6,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(160).biasInit(0).activation(Activation.RELU).build())
+                .layer(7,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(160).biasInit(1).activation(Activation.RELU).build())
+                .layer(8,new ConvolutionLayer.Builder().kernelSize(3,3).stride(1,1).padding(1,1).nOut(96).biasInit(1).activation(Activation.RELU).build())
                 .layer(9,new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX).kernelSize(3,3).build())
-                .layer(10,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
-                .layer(11,new DenseLayer.Builder().dropOut(0.5).nOut(4096).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
+                .layer(10,new DenseLayer.Builder().dropOut(0.5).nOut(512).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
+                .layer(11,new DenseLayer.Builder().dropOut(0.5).nOut(512).biasInit(1).dist( new GaussianDistribution(0, 0.005)).build())
                 .layer(12,new OutputLayer.Builder().lossFunction(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD).nOut(5).activation(Activation.SOFTMAX).build())
                 .setInputType(InputType.convolutional(hight, width, imgChannels)
                 ).backpropType(BackpropType.Standard)
